@@ -287,6 +287,8 @@ window, or NIL to display it in the echo area.")
 (defvar p4-form-committed nil "Form successfully committed?")
 (defvar p4-form-commit-fail-callback nil
   "Function run if commit fails.")
+(defvar p4-form-commit-success-callback nil
+  "Function run if success commit")
 (defvar p4-form-head-text
   (format "# Created using %s.
 # Type C-c C-c to send the form to the server.
@@ -1161,6 +1163,8 @@ standard input\). If not supplied, cmd is reused.
                 buffer-read-only t
                 mode-name "P4 Form Committed")
           (with-current-buffer buffer
+            (if p4-form-commit-success-callback
+                (funcall p4-form-commit-success-callback buffer))
             (p4-process-show-output)
             (p4-partial-cache-cleanup (intern cmd))
             (when (string= cmd "submit")
