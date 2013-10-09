@@ -285,10 +285,10 @@ window, or NIL to display it in the echo area.")
 (defvar p4-form-commit-command nil
   "p4 command to run when committing this form.")
 (defvar p4-form-committed nil "Form successfully committed?")
-(defvar p4-form-commit-fail-callback nil
+(defvar p4-form-commit-failure-callback nil
   "Function run if commit fails.")
 (defvar p4-form-commit-success-callback nil
-  "Function run if success commit")
+  "Function run if commit succeeds.")
 (defvar p4-form-head-text
   (format "# Created using %s.
 # Type C-c C-c to send the form to the server.
@@ -305,7 +305,8 @@ window, or NIL to display it in the echo area.")
                p4-process-after-show p4-process-auto-login
                p4-process-pop-up-output p4-process-synchronous
                p4-form-commit-command p4-form-committed
-               p4-form-commit-fail-callback p4-default-directory))
+               p4-form-commit-failure-callback p4-default-directory
+               p4-form-commit-success-callback))
   (make-variable-buffer-local var)
   (put var 'permanent-local t))
 
@@ -1106,7 +1107,7 @@ opposed to showing it in the echo area)."
   (pop-to-buffer (current-buffer))
   (setq p4-form-commit-command cmd)
   (setq p4-form-committed nil)
-  (setq p4-form-commit-fail-callback fail-callback)
+  (setq p4-form-commit-failure-callback fail-callback)
   (setq buffer-offer-save t)
   (set-buffer-modified-p nil)
   (setq buffer-undo-list nil)
@@ -1163,14 +1164,14 @@ standard input\). If not supplied, cmd is reused.
                 buffer-read-only t
                 mode-name "P4 Form Committed")
           (with-current-buffer buffer
-            (if p4-form-commit-success-callback
+            (when p4-form-commit-success-callback
                 (funcall p4-form-commit-success-callback buffer))
             (p4-process-show-output)
             (p4-partial-cache-cleanup (intern cmd))
             (when (string= cmd "submit")
               (p4-refresh-buffers))))
-      (if p4-form-commit-fail-callback
-          (funcall p4-form-commit-fail-callback buffer)
+      (if p4-form-commit-failure-callback
+          (funcall p4-form-commit-failure-callback buffer)
         (with-current-buffer buffer
           (p4-process-show-error
            "%s -i failed to complete successfully." cmd))))))
