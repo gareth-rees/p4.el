@@ -1958,7 +1958,7 @@ return a buffer listing those files. Otherwise, return NIL."
                  "File with empty diff opened for edit. Submit anyway? ")))
       (p4-form-command "change" args :move-to "Description:\n\t"
                        :commit-cmd "submit"
-                       :fail-callback 'p4-submit-failed))))
+                       :failure-callback 'p4-submit-failed))))
 
 (defp4cmd* sync
   "Synchronize the client with its view of the depot."
