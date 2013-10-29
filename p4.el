@@ -433,6 +433,8 @@ functions are called.")
      (and buffer-file-name (or (not p4-do-find-file) p4-vc-status))]
     ["Diff Current" p4-diff
      (and buffer-file-name (or (not p4-do-find-file) (eq p4-vc-status 'edit)))]
+    ["File info" p4-fstat
+     (buffer-file-name)]
     ["Diff All Opened Files" p4-diff-all-opened t]
     ["Diff Current with Ediff" p4-ediff
      (and buffer-file-name (or (not p4-do-find-file) (eq p4-vc-status 'edit)))]
@@ -1494,6 +1496,11 @@ changelevel."
   "Create or edit a client workspace specification and its view."
   (interactive (p4-read-args* "p4 client: " "" 'client))
   (p4-form-command "client" args :move-to "\\(Description\\|View\\):\n\t"))
+
+(defp4cmd* fstat
+  "Dumps information about a file."
+  (p4-context-filenames-list)
+  (p4-call-command cmd args))
 
 (defp4cmd* clients
   "Display list of clients."
