@@ -842,10 +842,13 @@ respecting the `p4-follow-symlinks' setting."
     (when f (p4-follow-link-name f))))
 
 (defun p4-cygpath (name)
-  (if (memq system-type '(cygwin32 cygwin))
+  (if (and
+       (memq system-type '(cygwin32 cygwin))
+       (not (string-match-p
+	     "CYGWIN" (replace-in-string (shell-command-to-string (format "%s -V" p4-executable)) "\n" ""))))
       (if (featurep 'xemacs)
-          (replace-in-string (exec-to-string (format "%s -w %s" p4-cygpath-exec name)) "\n" "")
-        (replace-regexp-in-string "\n" "" (shell-command-to-string (format "%s -w %s" p4-cygpath-exec name))))
+	  (replace-in-string (exec-to-string (format "%s -w %s" p4-cygpath-exec name)) "\n" "")
+	(replace-regexp-in-string "\n" "" (shell-command-to-string (format "%s -w %s" p4-cygpath-exec name))))
     name))
 
 (defun p4-startswith (string prefix)
