@@ -290,8 +290,10 @@ window, or NIL to display it in the echo area.")
 (defvar p4-form-commit-command nil
   "p4 command to run when committing this form.")
 (defvar p4-form-committed nil "Form successfully committed?")
-(defvar p4-form-commit-fail-callback nil
+(defvar p4-form-commit-failure-callback nil
   "Function run if commit fails.")
+(defvar p4-form-commit-success-callback nil
+  "Function run if commit succeeds.")
 (defvar p4-form-head-text
   (format "# Created using Perforce-Emacs Integration version %s.
 # Type C-c C-c to send the form to the server.
@@ -308,7 +310,8 @@ window, or NIL to display it in the echo area.")
                p4-process-after-show p4-process-auto-login
                p4-process-pop-up-output p4-process-synchronous
                p4-form-commit-command p4-form-committed
-               p4-form-commit-fail-callback p4-default-directory))
+               p4-form-commit-failure-callback p4-default-directory
+               p4-form-commit-success-callback))
   (make-variable-buffer-local var)
   (put var 'permanent-local t))
 
@@ -1100,7 +1103,7 @@ opposed to showing it in the echo area)."
 
 ;;; Form commands:
 
-(defun p4-form-callback (regexp cmd fail-callback)
+(defun p4-form-callback (regexp cmd success-callback failure-callback)
   (goto-char (point-min))
   ;; The Windows p4 client outputs this line before the spec unless
   ;; run via CMD.EXE.
@@ -1110,7 +1113,8 @@ opposed to showing it in the echo area)."
   (pop-to-buffer (current-buffer))
   (setq p4-form-commit-command cmd)
   (setq p4-form-committed nil)
-  (setq p4-form-commit-fail-callback fail-callback)
+  (setq p4-form-commit-success-callback success-callback)
+  (setq p4-form-commit-failure-callback failure-callback)
   (setq buffer-offer-save t)
   (set-buffer-modified-p nil)
   (setq buffer-undo-list nil)
@@ -1119,7 +1123,7 @@ opposed to showing it in the echo area)."
   (message "C-c C-c to finish editing and exit buffer."))
 
 (defun* p4-form-command (cmd &optional args &key move-to commit-cmd
-                             fail-callback)
+                             success-callback failure-callback)
   "Start a form-editing session.
 cmd is the p4 command to run \(it must take -o and output a form\).
 args is a list of arguments to pass to the p4 command.
@@ -1128,20 +1132,24 @@ Remaining arguments are keyword arguments:
 :commit-cmd is the command that will be called when
 `p4-form-commit' is called \(it must take -i and a form on
 standard input\). If not supplied, cmd is reused.
-:fail-callback is a function that is called if the commit fails."
+:success-callback is a function that is called if the commit succeeds.
+:failure-callback is a function that is called if the commit fails."
   (setq args (remove "-i" (remove "-o" args)))
   ;; Is there already an uncommitted form with the same name? If so,
   ;; just switch to it.
   (lexical-let* ((args (cons "-o" args))
                  (move-to move-to)
                  (commit-cmd (or commit-cmd cmd))
-                 (fail-callback fail-callback)
+                 (failure-callback failure-callback)
+                 (success-callback success-callback)
                  (buf (get-buffer (p4-process-buffer-name (cons cmd args)))))
     (if (and buf (with-current-buffer buf (not p4-form-committed)))
         (select-window (display-buffer buf))
       (p4-call-command cmd args
        :callback (lambda ()
-                   (p4-form-callback move-to commit-cmd fail-callback))))))
+                   (p4-form-callback move-to commit-cmd
+                                     success-callback
+                                     failure-callback))))))
 
 (defun p4-form-commit ()
   "Commit the form in the current buffer to the server."
@@ -1169,12 +1177,14 @@ standard input\). If not supplied, cmd is reused.
                 buffer-read-only t
                 mode-name "P4 Form Committed")
           (with-current-buffer buffer
+            (when p4-form-commit-success-callback
+                (funcall p4-form-commit-success-callback buffer))
             (p4-process-show-output)
             (p4-partial-cache-cleanup (intern cmd))
             (when (string= cmd "submit")
               (p4-refresh-buffers))))
-      (if p4-form-commit-fail-callback
-          (funcall p4-form-commit-fail-callback buffer)
+      (if p4-form-commit-failure-callback
+          (funcall p4-form-commit-failure-callback buffer)
         (with-current-buffer buffer
           (p4-process-show-error
            "%s -i failed to complete successfully." cmd))))))
@@ -1978,7 +1988,7 @@ return a buffer listing those files. Otherwise, return NIL."
                  "File with empty diff opened for edit. Submit anyway? ")))
       (p4-form-command "change" args :move-to "Description:\n\t"
                        :commit-cmd "submit"
-                       :fail-callback 'p4-submit-failed))))
+                       :failure-callback 'p4-submit-failed))))
 
 (defp4cmd* sync
   "Synchronize the client with its view of the depot."
