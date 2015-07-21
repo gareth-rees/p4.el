@@ -3614,6 +3614,7 @@ REVERSE is non-NIL. The location in the file can be found by
 going to line number LINE and then moving forward OFFSET
 characters."
   (save-excursion
+    (goto-char (point-min))
     (let* ((char-offset (- (point) (diff-beginning-of-hunk t)))
            (_ (diff-sanity-check-hunk))
            (hunk (buffer-substring
