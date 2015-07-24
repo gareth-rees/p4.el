@@ -161,6 +161,11 @@ P4PORT and P4USER and set from the current Perforce settings."
   :type 'hook
   :group 'p4)
 
+(defcustom p4-before-command-call-hook nil
+  "Hook run before p4 command is called."
+  :type 'hook
+  :group 'p4)
+
 (defcustom p4-set-client-hooks nil
   "Hook run after client is changed."
   :type 'hook
@@ -1181,6 +1186,7 @@ opposed to showing it in the echo area)."
           p4-process-pop-up-output pop-up-output
           p4-process-synchronous
           (or synchronous (memq (intern cmd) p4-synchronous-commands)))
+    (run-hooks 'p4-before-command-call-hook)
     (p4-process-restart)))
 
 ;; This empty function can be passed as an :after-show callback
