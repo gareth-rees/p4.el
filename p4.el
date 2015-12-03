@@ -1334,12 +1334,25 @@ update (oldest first)."
         (sort (loop for pending in p4-update-status-pending-alist
                     do (setf (third pending)
                              (loop for b in (third pending)
-                                   if (and (buffer-live-p b)
-                                           (buffer-file-name b))
+                                   if (p4--buffer-accessible-file-p b)
                                    collect b))
                     if (third pending)
                     collect pending)
               (lambda (a b) (time-less-p (second a) (second b))))))
+
+(defun p4--buffer-accessible-file-p (buffer)
+  "Return t if the BUFFER is visiting an accessible file.
+BUFFER is a buffer in `p4-update-status-pending-alist'.  Return t
+only if BUFFER exists, is visiting a readable file, and has an
+accessible `default-directory'; then
+`p4-update-status-pending-sort' should keep it in the list of
+pending buffers."
+  (and (buffer-live-p buffer)
+       (with-current-buffer buffer
+         (file-accessible-directory-p default-directory))
+       (let ((file (buffer-file-name buffer)))
+         (and file
+              (file-readable-p file)))))
 
 (defun p4-update-mode (buffer status revision)
   "Turn p4-mode on or off in BUFFER according to Perforce status.
