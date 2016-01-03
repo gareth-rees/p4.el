@@ -510,7 +510,9 @@ commit command.")
 (defmacro p4-with-temp-buffer (args &rest body)
   "Run p4 ARGS in a temporary buffer, place point at the start of
 the output, and evaluate BODY if the command completed successfully."
-  `(let ((dir (or p4-default-directory default-directory)))
+  `(let ((dir (unhandled-file-name-directory
+               (file-name-as-directory
+                (or p4-default-directory default-directory)))))
      (with-temp-buffer
        (cd dir)
        (when (zerop (p4-run ,args)) ,@body))))
@@ -522,7 +524,9 @@ the output, and evaluate BODY if the command completed successfully."
 the output, and evaluate BODY if the command completed successfully."
   ;; Can't use `p4-with-temp-buffer' for this, because that would lead
   ;; to infinite recursion via `p4-coding-system'.
-  `(let ((dir (or p4-default-directory default-directory)))
+  `(let ((dir (unhandled-file-name-directory
+               (file-name-as-directory
+                (or p4-default-directory default-directory)))))
      (with-temp-buffer
        (cd dir)
        (when (zerop (save-excursion
@@ -959,7 +963,9 @@ is modified using `p4-modify-args'."
 (defun p4-make-output-buffer (buffer-name &optional mode)
   "Make a read-only buffer named BUFFER-NAME and return it.
 Run the function MODE if non-NIL, otherwise `p4-basic-mode'."
-  (let ((dir (or p4-default-directory default-directory))
+  (let ((dir (unhandled-file-name-directory
+              (file-name-as-directory
+               (or p4-default-directory default-directory))))
         (inhibit-read-only t))
     (with-current-buffer (get-buffer-create buffer-name)
       (erase-buffer)
@@ -1464,7 +1470,10 @@ for the current Perforce settings."
   (let ((b (current-buffer)))
     (when (and p4-executable p4-do-find-file buffer-file-name
                (not p4-default-directory)
-               (file-accessible-directory-p default-directory))
+               default-directory
+               (file-accessible-directory-p default-directory)
+               (unhandled-file-name-directory
+                (file-name-as-directory default-directory)))
       (p4-with-set-output
         (let ((set (buffer-substring-no-properties (point-min) (point-max))))
           (p4-update-status-pending-add set b force)))
@@ -2095,7 +2104,8 @@ changelist."
     (setq buffer (get-buffer buf-name))
     (if (and (buffer-live-p buffer)
              (not (comint-check-proc buffer)))
-        (let ((cur-dir default-directory))
+        (let ((cur-dir (unhandled-file-name-directory
+                        (file-name-as-directory default-directory))))
           (with-current-buffer buffer
             (cd cur-dir)
             (goto-char (point-max))
