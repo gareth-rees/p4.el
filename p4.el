@@ -2577,7 +2577,7 @@ the mouse over the link."
           (setf (p4-file-revision-desc rev)
                 (if (<= (length desc) desc-width)
                     (format (format "%%-%ds: " desc-width) desc)
-                  (format (format "%%%ds: " desc-width) (substring desc 0 33))))))))
+                  (format (format "%%%ds: " desc-width) (substring desc 0 desc-width))))))))
 
 (defun p4-parse-filelog (filespec)
   "Parse the filelog for FILESPEC.
