@@ -2550,7 +2550,7 @@ the mouse over the link."
     (insert text)
     (p4-create-active-link p (point) properties help-echo)))
 
-(defun p4-file-revision-annotate-links (rev)
+(defun p4-file-revision-annotate-links (rev change-width)
   (let ((links (p4-file-revision-links rev)))
     (or links
         (with-temp-buffer
@@ -2558,7 +2558,7 @@ the mouse over the link."
                 (filename (p4-file-revision-filename rev))
                 (revision (p4-file-revision-revision rev))
                 (user (p4-file-revision-user rev)))
-            (p4-link 7 (format "%d" change) `(change ,change) "Describe change")
+            (p4-link change-width (format "%d" change) `(change ,change) "Describe change")
             (insert " ")
             (p4-link 5 (format "#%d" revision)
                      `(rev ,revision link-depot-name ,filename)
@@ -2570,14 +2570,14 @@ the mouse over the link."
           (setf (p4-file-revision-links rev)
                 (buffer-substring (point-min) (point-max)))))))
 
-(defun p4-file-revision-annotate-desc (rev)
+(defun p4-file-revision-annotate-desc (rev desc-width)
   (let ((links (p4-file-revision-desc rev)))
     (or links
         (let ((desc (p4-file-revision-description rev)))
           (setf (p4-file-revision-desc rev)
-                (if (<= (length desc) 33)
-                    (format "%-33s: " desc)
-                  (format "%33s: " (substring desc 0 33))))))))
+                (if (<= (length desc) desc-width)
+                    (format (format "%%-%ds: " desc-width) desc)
+                  (format (format "%%%ds: " desc-width) (substring desc 0 desc-width))))))))
 
 (defun p4-parse-filelog (filespec)
   "Parse the filelog for FILESPEC.
@@ -2688,6 +2688,9 @@ only be used when p4 annotate is unavailable."
                  (current-line 0)
                  (current-repeats 0)
                  (current-percent -1)
+                 (most-recent-change (caar (last file-change-alist)))
+                 (change-width (length (number-to-string most-recent-change)))
+                 (desc-width (+ change-width 26))
                  current-change)
             (p4-run (list "print" filespec))
             (p4-fontify-print-buffer)
@@ -2703,9 +2706,9 @@ only be used when p4 annotate is unavailable."
                 (setq current-repeats 0))
               (let ((rev (cdr (assoc change file-change-alist))))
                 (case current-repeats
-                  (0 (insert (p4-file-revision-annotate-links rev)))
-                  (1 (insert (p4-file-revision-annotate-desc rev)))
-                  (t (insert (format "%33s: " "")))))
+                  (0 (insert (p4-file-revision-annotate-links rev change-width)))
+                  (1 (insert (p4-file-revision-annotate-desc rev desc-width)))
+                  (t (insert (format (format "%%%ds: " desc-width) "")))))
               (setq current-change change)
               (forward-line))
             (goto-char (point-min))
