@@ -1778,7 +1778,7 @@ buffer and the P4 output buffer."
       (when (buffer-live-p orig-buffer)
         (p4-fontify-print-buffer t)
         (lexical-let ((depot-buffer (current-buffer)))
-          (ediff-buffers orig-buffer depot-buffer))))))
+          (ediff-buffers depot-buffer orig-buffer))))))
 
 (defun p4-ediff (prefix)
   "Use ediff to compare file with its original client version."
