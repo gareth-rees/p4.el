@@ -864,7 +864,7 @@ characters."
   "Return name of file BUFFER is visiting, or NIL if none,
 respecting the `p4-follow-symlinks' setting."
   (let ((f (buffer-file-name buffer)))
-    (when f (p4-follow-link-name f))))
+    (when f (replace-regexp-in-string "@" "%40" (p4-follow-link-name f)))))
 
 (defun p4-process-output (cmd &rest args)
   "Run CMD (with the given ARGS) and return the output as a string,
